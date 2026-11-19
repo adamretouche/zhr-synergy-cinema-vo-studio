@@ -48,6 +48,14 @@ rsync -av --delete \
 
 echo "✔ تم تحديث مجلد السورس كود Source بنجاح."
 
+# 3.1 مزامنة مجلد البلاجن المعتمد (Antigravity Plugin)
+PLUGIN_DIR="$HOME/.gemini/config/plugins/zhr-synergy-cinema-vo-studio"
+if [ -d "$PLUGIN_DIR" ]; then
+    mkdir -p "$DEST_ROOT/Antigravity_Plugin"
+    rsync -av --delete "$PLUGIN_DIR/" "$DEST_ROOT/Antigravity_Plugin/" > /dev/null
+    echo "✔ تم تحديث حزمة البلاجن Antigravity Plugin بنجاح."
+fi
+
 # 4. حساب رقم التسلسل للأرشيف
 SEQ_FILE="$DEST_ROOT/Backups/.sequence"
 if [ ! -f "$SEQ_FILE" ]; then

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-vo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0817"/>
+      <stop offset="50%" stop-color="#160d2e"/>
+      <stop offset="100%" stop-color="#210f38"/>
+    </linearGradient>
+
+    <!-- Border Glow -->
+    <linearGradient id="border-vo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+
+    <!-- Microphone Body Gradient (Vibrant Cinema Gradient) -->
+    <linearGradient id="mic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3366"/>
+      <stop offset="45%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+
+    <!-- Shock Mount & Base Gradient -->
+    <linearGradient id="cradle-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+
+    <!-- Sound Wave Left Gradient -->
+    <linearGradient id="wave-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <!-- Sound Wave Right Gradient -->
+    <linearGradient id="wave-right" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+
+    <!-- Subtle Glow Filter -->
+    <filter id="glow-mic" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#8b5cf6" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Background -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg-vo)" stroke="url(#border-vo)" stroke-width="2.5" filter="url(#drop-shadow)"/>
+
+  <!-- Sound Waves (Left) -->
+  <path d="M 36 44 A 22 22 0 0 0 36 64" fill="none" stroke="url(#wave-left)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 26 37 A 34 34 0 0 0 26 71" fill="none" stroke="url(#wave-left)" stroke-width="3.5" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 18 31 A 46 46 0 0 0 18 77" fill="none" stroke="url(#wave-left)" stroke-width="2.5" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Sound Waves (Right) -->
+  <path d="M 92 44 A 22 22 0 0 1 92 64" fill="none" stroke="url(#wave-right)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 102 37 A 34 34 0 0 1 102 71" fill="none" stroke="url(#wave-right)" stroke-width="3.5" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 110 31 A 46 46 0 0 1 110 77" fill="none" stroke="url(#wave-right)" stroke-width="2.5" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Microphone Stand / Base -->
+  <g>
+    <!-- Stand Neck -->
+    <rect x="61.5" y="77" width="5" height="18" rx="2.5" fill="#a855f7"/>
+    <!-- Stand Base -->
+    <rect x="44" y="93" width="40" height="7" rx="3.5" fill="url(#cradle-grad)"/>
+    <rect x="52" y="91" width="24" height="2.5" rx="1.25" fill="#ffffff" opacity="0.4"/>
+  </g>
+
+  <!-- Shock Mount Cradle (U-Shape) -->
+  <path d="M 44 48 C 44 76, 84 76, 84 48" fill="none" stroke="url(#cradle-grad)" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Mount Connection Nodes -->
+  <circle cx="44" cy="48" r="3.5" fill="#ff3366"/>
+  <circle cx="84" cy="48" r="3.5" fill="#3b82f6"/>
+  <circle cx="64" cy="76" r="3" fill="#a855f7"/>
+
+  <!-- Microphone Capsule (Main Body) -->
+  <g filter="url(#drop-shadow)">
+    <!-- Capsule Outer Body -->
+    <rect x="52" y="24" width="24" height="42" rx="12" fill="url(#mic-grad)"/>
+
+    <!-- Mesh Grill Pattern / Lines -->
+    <line x1="55" y1="33" x2="73" y2="33" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+    <line x1="54" y1="38" x2="74" y2="38" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+    <line x1="55" y1="43" x2="73" y2="43" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+
+    <!-- Middle Metal Band -->
+    <rect x="50.5" y="46" width="27" height="4" rx="2" fill="#ffffff" opacity="0.9"/>
+
+    <!-- Studio Status Indicator / On-Air Dot -->
+    <circle cx="64" cy="56" r="2.5" fill="#ffffff"/>
+    <circle cx="64" cy="56" r="4.5" fill="#00ffff" opacity="0.5"/>
+  </g>
+
+  <!-- Cinema Star Sparkle / Top Accent -->
+  <path d="M 64 15 L 65.5 19 L 69.5 20.5 L 65.5 22 L 64 26 L 62.5 22 L 58.5 20.5 L 62.5 19 Z" fill="#ffd700" opacity="0.85"/>
+</svg>

@@ -16,6 +16,7 @@ import { SystemPromptModal } from './components/SystemPromptModal';
 import { DramatizeConfirmModal } from './components/DramatizeConfirmModal';
 import { CommandTagsBar } from './components/CommandTagsBar';
 import { DeliveryTagsGuideModal } from './components/DeliveryTagsGuideModal';
+import { ChangelogModal } from './components/ChangelogModal';
 import { MultiSpeakerStudio } from './components/MultiSpeakerStudio';
 import { DirectorProfileStudio } from './components/DirectorProfileStudio';
 import { DocumentationView } from './components/DocumentationView';
@@ -192,6 +193,7 @@ const App: React.FC = () => {
   const [isDramatizeConfirmOpen, setIsDramatizeConfirmOpen] = useState(false);
   const [isSpendHistoryOpen, setIsSpendHistoryOpen] = useState(false);
   const [isDeliveryGuideOpen, setIsDeliveryGuideOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
   // Generation Audit History
   const [generationHistory, setGenerationHistory] = useState<HistoryEntry[]>(() => {
@@ -1131,7 +1133,8 @@ const App: React.FC = () => {
         {/* Header / Title Area */}
         <div className="flex-shrink-0 border-b-4 border-bauhaus-black p-3 md:p-6 bg-white flex justify-between items-start z-10">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2.5 mb-1">
+              <img src="/logo.svg" alt="ZHR Synergy V.O" className="w-8 h-8 md:w-9 md:h-9 object-contain drop-shadow" />
               <h1 className="text-xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter">
                 Gemini Speech Studio <span className="text-xs font-bold opacity-60">استوديو تحويل النص إلى كلام</span>
               </h1>
@@ -1257,6 +1260,17 @@ const App: React.FC = () => {
                   <span className="text-sm">📦</span>
                   <span>تصدير ونسخ AI Studio</span>
                 </button>
+
+                {/* Version & Changelog Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsChangelogOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 border-2 border-bauhaus-black bg-bauhaus-black hover:bg-gray-800 text-bauhaus-yellow text-[10px] md:text-xs font-black uppercase transition-all shadow-hard-sm active:translate-y-0.5 cursor-pointer"
+                  title="سجل التحديثات والإصدارات (Changelog) - الإصدار v1.0.0"
+                >
+                  <span>📜</span>
+                  <span>v1.0.0</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1273,7 +1287,7 @@ const App: React.FC = () => {
                 className="flex items-center gap-1.5 px-2 py-0.5 bg-black/60 border border-amber-500/40 rounded cursor-pointer hover:bg-black/90 transition-colors"
                 title="اضغط لتعديل رقم المصروف أو السقف الشهري أو تصفير العداد"
               >
-                <span className="text-amber-400 font-black text-xs">💰 Monthly spend cap:</span>
+                <span className="text-amber-400 font-black text-xs">💰 المصروف:</span>
                 <span className="font-mono font-black text-xs text-amber-300">
                   ${usageStats.totalCostUSD >= 1 ? usageStats.totalCostUSD.toFixed(2) : usageStats.totalCostUSD.toFixed(4)}
                 </span>
@@ -1819,7 +1833,7 @@ const App: React.FC = () => {
                 <span className="text-base">📊</span>
                 <span className="font-black text-black">عداد الاستهلاك المالي التقديري (الصفحة الأولى):</span>
                 <span className="font-mono font-black text-amber-900 bg-white px-2 py-0.5 border border-black shadow-xs">
-                  Monthly spend cap: ${usageStats.totalCostUSD >= 1 ? usageStats.totalCostUSD.toFixed(2) : usageStats.totalCostUSD.toFixed(4)} / ${(usageStats.budgetUSD || 4.0).toFixed(2)}
+                  💰 المصروف: ${usageStats.totalCostUSD >= 1 ? usageStats.totalCostUSD.toFixed(2) : usageStats.totalCostUSD.toFixed(4)} / ${(usageStats.budgetUSD || 4.0).toFixed(2)}
                 </span>
                 <span className="font-mono text-gray-800 bg-white px-1.5 py-0.5 border border-gray-400">
                   🎯 {usageStats.requestCount} طلب صوتي
@@ -2142,6 +2156,12 @@ const App: React.FC = () => {
           setNotification('✓ تم إدراج نموذج السكربت الكامل في المحرر بنجاح!');
           setTimeout(() => setNotification(null), 3500);
         }}
+      />
+
+      {/* Changelog & Version Release History Modal */}
+      <ChangelogModal
+        isOpen={isChangelogOpen}
+        onClose={() => setIsChangelogOpen(false)}
       />
     </div>
   </div>

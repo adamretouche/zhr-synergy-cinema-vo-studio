@@ -129,7 +129,7 @@ export const CostQuotaWidget: React.FC<CostQuotaWidgetProps> = ({
         <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-black/60 border border-amber-500/40">
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-amber-400 font-bold text-[10px]">Monthly spend cap:</span>
+              <span className="text-amber-400 font-bold text-[10px]">💰 المصروف:</span>
               <span className="font-bold text-amber-300 text-xs">
                 ${stats.totalCostUSD >= 1 ? stats.totalCostUSD.toFixed(2) : stats.totalCostUSD.toFixed(4)}
               </span>
