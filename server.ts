@@ -1209,6 +1209,143 @@ app.get('/api/export/aistudio-prompts', async (_req, res) => {
   }
 });
 
+// 9.5. Custom Presets Cloud & Server Persistence API (Permanent Online Storage)
+const DATA_DIR = path.resolve(__dirname, 'data');
+const PRESETS_FILE = path.join(DATA_DIR, 'custom_presets.json');
+
+const ensurePresetsFile = () => {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(PRESETS_FILE)) {
+    fs.writeFileSync(PRESETS_FILE, '[]', 'utf8');
+  }
+};
+
+const getStoredPresets = (): any[] => {
+  ensurePresetsFile();
+  try {
+    const raw = fs.readFileSync(PRESETS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('[Presets Storage] Error reading presets file:', e);
+    return [];
+  }
+};
+
+const saveStoredPresets = (presets: any[]): boolean => {
+  ensurePresetsFile();
+  try {
+    fs.writeFileSync(PRESETS_FILE, JSON.stringify(presets, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[Presets Storage] Error writing presets file:', e);
+    return false;
+  }
+};
+
+// GET all stored custom presets
+app.get('/api/presets', (_req, res) => {
+  try {
+    const presets = getStoredPresets();
+    res.json({ success: true, count: presets.length, presets });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to retrieve presets' });
+  }
+});
+
+// POST save or update a single custom preset
+app.post('/api/presets', (req, res) => {
+  try {
+    const { preset, mode = 'create' } = req.body;
+    if (!preset || !preset.name) {
+      return res.status(400).json({ success: false, error: 'بيانات البريسيت غير صالحة' });
+    }
+
+    const current = getStoredPresets();
+    let updated: any[];
+
+    if (mode === 'update') {
+      const idx = current.findIndex((p: any) => p.id === preset.id);
+      if (idx !== -1) {
+        current[idx] = { ...preset, isCustom: true };
+        updated = current;
+      } else {
+        updated = [{ ...preset, isCustom: true }, ...current];
+      }
+    } else {
+      const newPreset = {
+        ...preset,
+        id: preset.id || `preset_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        isCustom: true,
+      };
+      const existingIdx = current.findIndex((p: any) => p.id === newPreset.id);
+      if (existingIdx !== -1) {
+        current[existingIdx] = newPreset;
+        updated = current;
+      } else {
+        updated = [newPreset, ...current];
+      }
+    }
+
+    const saved = saveStoredPresets(updated);
+    if (!saved) throw new Error('فشل حفظ البريسيت على القرص');
+
+    res.json({ success: true, count: updated.length, presets: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to save preset' });
+  }
+});
+
+// POST bulk sync presets (merges imported or local presets to cloud)
+app.post('/api/presets/bulk', (req, res) => {
+  try {
+    const { presets } = req.body;
+    if (!Array.isArray(presets)) {
+      return res.status(400).json({ success: false, error: 'يجب إرسال مصفوفة صالحة من البريسيتات' });
+    }
+
+    const current = getStoredPresets();
+    const existingIds = new Set(current.map((p: any) => p.id));
+    const merged = [...current];
+
+    for (const p of presets) {
+      if (p && p.name) {
+        if (p.id && existingIds.has(p.id)) {
+          const idx = merged.findIndex((item) => item.id === p.id);
+          if (idx !== -1) merged[idx] = { ...p, isCustom: true };
+        } else {
+          const id = p.id || `preset_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+          merged.unshift({ ...p, id, isCustom: true });
+          existingIds.add(id);
+        }
+      }
+    }
+
+    saveStoredPresets(merged);
+    res.json({ success: true, count: merged.length, presets: merged });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to bulk save presets' });
+  }
+});
+
+// DELETE a custom preset by ID
+app.delete('/api/presets/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, error: 'Preset ID is required' });
+
+    const current = getStoredPresets();
+    const updated = current.filter((p: any) => p.id !== id);
+    saveStoredPresets(updated);
+
+    res.json({ success: true, count: updated.length, presets: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to delete preset' });
+  }
+});
+
 // 10. Trigger Google Drive Cloud Backup
 app.post('/api/backup/trigger-gdrive', async (_req, res) => {
   try {

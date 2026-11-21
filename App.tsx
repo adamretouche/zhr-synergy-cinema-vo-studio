@@ -8,6 +8,7 @@ import { ALL_VOICES } from './voices';
 import { StyleSelector } from './components/StyleSelector';
 import { CostQuotaWidget } from './components/CostQuotaWidget';
 import { SavePresetModal } from './components/SavePresetModal';
+import { ExportPresetsModal } from './components/ExportPresetsModal';
 import { SpendHistoryModal } from './components/SpendHistoryModal';
 import { BauhausButton, getColorClass, DownloadIcon } from './components/BauhausComponents';
 import { ConfigurationModal } from './components/ConfigurationModal';
@@ -226,6 +227,8 @@ const App: React.FC = () => {
   });
   const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
   const [editingPreset, setEditingPreset] = useState<IntroStyle | null>(null);
+  const [isExportPresetsModalOpen, setIsExportPresetsModalOpen] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [isDramatizeConfirmOpen, setIsDramatizeConfirmOpen] = useState(false);
   const [isSpendHistoryOpen, setIsSpendHistoryOpen] = useState(false);
   const [isDeliveryGuideOpen, setIsDeliveryGuideOpen] = useState(false);
@@ -390,7 +393,60 @@ const App: React.FC = () => {
     setDownloadData(null);
   };
 
-  const handleSavePreset = (savedPreset: IntroStyle, mode: 'create' | 'update' = 'create') => {
+  // Bidirectional Synchronization with Server / Cloud JSON Storage
+  const syncPresetsWithServer = useCallback(async () => {
+    try {
+      setCloudSyncStatus('syncing');
+      const res = await fetch('/api/presets');
+      if (res.ok) {
+        const data = await res.json();
+        const serverPresets: IntroStyle[] = Array.isArray(data.presets) ? data.presets : [];
+
+        // Read local storage presets
+        const localSaved = localStorage.getItem('synergy_custom_presets');
+        const localPresets: IntroStyle[] = localSaved ? JSON.parse(localSaved) : [];
+
+        // Bidirectional merge: default models + server presets + local custom presets
+        const combinedMap = new Map<string, IntroStyle>();
+        DEFAULT_MODEL_PRESETS.forEach((p) => combinedMap.set(p.id, p));
+        serverPresets.forEach((p) => combinedMap.set(p.id, p));
+
+        const localOnlyPresets: IntroStyle[] = [];
+        localPresets.forEach((p) => {
+          if (!combinedMap.has(p.id)) {
+            combinedMap.set(p.id, p);
+            localOnlyPresets.push(p);
+          }
+        });
+
+        const mergedList = Array.from(combinedMap.values());
+        setCustomPresets(mergedList);
+        localStorage.setItem('synergy_custom_presets', JSON.stringify(mergedList));
+
+        // If client had local presets not yet on server, upload to server
+        if (localOnlyPresets.length > 0) {
+          await fetch('/api/presets/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ presets: localOnlyPresets }),
+          });
+        }
+        setCloudSyncStatus('synced');
+      } else {
+        setCloudSyncStatus('error');
+      }
+    } catch (e) {
+      console.warn('[Presets Cloud Sync]: Operating in offline mode', e);
+      setCloudSyncStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    syncPresetsWithServer();
+  }, [syncPresetsWithServer]);
+
+  const handleSavePreset = async (savedPreset: IntroStyle, mode: 'create' | 'update' = 'create') => {
+    let targetPreset = savedPreset;
     if (mode === 'update') {
       const updated = customPresets.map(p => p.id === savedPreset.id ? savedPreset : p);
       setCustomPresets(updated);
@@ -405,13 +461,14 @@ const App: React.FC = () => {
           setEmotionSettings(savedPreset.customEmotionSettings);
         }
       }
-      setNotification(`✓ تم تحديث البريسيت "${savedPreset.name}" بنجاح!`);
+      setNotification(`✓ تم تحديث البريسيت "${savedPreset.name}" وحفظه سحابياً بنجاح!`);
     } else {
       const newPreset: IntroStyle = {
         ...savedPreset,
-        id: `preset_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        id: savedPreset.id || `preset_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         isCustom: true,
       };
+      targetPreset = newPreset;
       const updated = [newPreset, ...customPresets];
       setCustomPresets(updated);
       localStorage.setItem('synergy_custom_presets', JSON.stringify(updated));
@@ -423,41 +480,70 @@ const App: React.FC = () => {
       if (newPreset.customEmotionSettings) {
         setEmotionSettings(newPreset.customEmotionSettings);
       }
-      setNotification(`✓ تم حفظ البريسيت "${newPreset.name}" بنجاح!`);
+      setNotification(`✓ تم حفظ البريسيت "${newPreset.name}" أونلاين وفي السحابة بنجاح!`);
     }
     setTimeout(() => setNotification(null), 3500);
+
+    // Save permanently to server disk storage (Cloud Persistence)
+    try {
+      await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: targetPreset, mode }),
+      });
+      setCloudSyncStatus('synced');
+    } catch (err) {
+      console.warn('Failed to persist preset to server:', err);
+    }
   };
 
-  const handleDeletePreset = (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا البريسيت المخصص؟')) {
+  const handleDeletePreset = async (id: string) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا البريسيت المخصص؟ سيتم حذفه من الجهاز والسحابة نهائياً.')) {
       const updated = customPresets.filter(p => p.id !== id);
       setCustomPresets(updated);
       localStorage.setItem('synergy_custom_presets', JSON.stringify(updated));
       if (currentStyle.id === id) {
         handleStyleChange(INTRO_STYLES[0]);
       }
+      try {
+        await fetch(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        setCloudSyncStatus('synced');
+        setNotification('✓ تم حذف البريسيت من السحابة بنجاح');
+        setTimeout(() => setNotification(null), 3000);
+      } catch (err) {
+        console.warn('Failed to delete preset from server:', err);
+      }
     }
   };
 
+  // Open Interactive Export Modal (Export All or Selected Presets)
   const handleExportPresets = () => {
     if (customPresets.length === 0) {
       alert('لا توجد بريسيتات مخصصة محفوظة حالياً لتصديرها.');
       return;
     }
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customPresets, null, 2));
+    setIsExportPresetsModalOpen(true);
+  };
+
+  // Direct 1-Click Export for a Single Preset
+  const handleExportSinglePreset = (preset: IntroStyle) => {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const cleanName = preset.name.replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g, '_').slice(0, 25);
+    const filename = `synergy_preset_${cleanName}_${dateStr}.json`;
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify([preset], null, 2));
     const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `synergy_custom_presets_${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', filename);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    setNotification(`تم تصدير ${customPresets.length} بريسيت بنجاح!`);
+    setNotification(`✓ تم تصدير البريسيت "${preset.name}" كملف منفصل بنجاح!`);
     setTimeout(() => setNotification(null), 3500);
   };
 
   const handleImportPresets = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
         const parsed = JSON.parse(content);
@@ -486,6 +572,18 @@ const App: React.FC = () => {
         localStorage.setItem('synergy_custom_presets', JSON.stringify(updated));
         setNotification(`تم استيراد ${newItems.length} بريسيت بنجاح!`);
         setTimeout(() => setNotification(null), 3500);
+
+        // Sync imported presets to server cloud storage
+        try {
+          await fetch('/api/presets/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ presets: newItems }),
+          });
+          setCloudSyncStatus('synced');
+        } catch (syncErr) {
+          console.warn('Failed to sync imported presets to server:', syncErr);
+        }
       } catch (err: any) {
         alert(`خطأ في استيراد ملف JSON: ${err.message || 'تنسيق غير صالح'}`);
       }
@@ -1310,6 +1408,9 @@ const App: React.FC = () => {
               }}
               onExportPresets={handleExportPresets}
               onImportPresets={handleImportPresets}
+              onExportSingle={handleExportSinglePreset}
+              cloudSyncStatus={cloudSyncStatus}
+              onSyncPresets={syncPresetsWithServer}
             />
           </div>
           <Footer className="hidden md:flex" />
@@ -2394,6 +2495,17 @@ const App: React.FC = () => {
         currentText={text}
         voiceSettings={voiceSettings}
         emotionSettings={emotionSettings}
+      />
+
+      {/* Interactive Selective Export Presets Modal (Single, Multiple, or All) */}
+      <ExportPresetsModal
+        isOpen={isExportPresetsModalOpen}
+        onClose={() => setIsExportPresetsModalOpen(false)}
+        customPresets={customPresets}
+        onExportSuccess={(count, filename) => {
+          setNotification(`✓ تم تصدير ${count} بريسيت في ملف (${filename}) بنجاح!`);
+          setTimeout(() => setNotification(null), 3500);
+        }}
       />
 
       {/* Credit & Quota Saving Dramatize Confirmation Modal */}

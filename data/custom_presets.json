@@ -1,0 +1,135 @@
+[
+  {
+    "id": "preset_1794863668864",
+    "name": "ZHR CENEMATIC THRILL",
+    "description": "بريسيت بصوت Algenib وسرعة 1x",
+    "defaultVoice": "Algenib",
+    "templateText": "in a world where quarterly goals were thought to be impossible\none team dared to defy the odds \nthey faced bugs\nthey faced scope creep\nthey faced\nTHE DEADLINE.\n\nAND. THEY. PREVAILED..",
+    "color": "green",
+    "icon": "circle",
+    "isCustom": true,
+    "customVoiceSettings": {
+      "pitch": -5,
+      "speed": 1,
+      "intensity": 49,
+      "style": "cinematic",
+      "tone": "deep",
+      "dialect": "General American",
+      "purpose": "cinematic narration"
+    },
+    "customEmotionSettings": {
+      "autoAnalyze": false,
+      "manualEmotion": "Epic Gravity & Thrill",
+      "emotionalStyle": "cinematic"
+    }
+  },
+  {
+    "id": "preset-1774772201597",
+    "name": "FEMAL PERFUME 1",
+    "description": "\nTHE Perfume Narrator\n# AUDIO PROFILE: Elara V.\n## \"The Breath of Elegance\"\n\n## The Scene: The Velvet Chamber\nIt is a softly treated luxury recording space designed for warmth and intimacy rather than absolute silence. The walls are layered with dense fabric panels and diffusive textures that preserve natural softness while controlling harsh reflections. The air feels still, yet alive. There is no mechanical noise, no sharp emptiness—only a smooth, breathable acoustic environment where the voice feels close, personal, and enveloping.\n\n### DIRECTOR'S NOTES\n* **Breathing:** Gentle, barely audible breaths that blend into the delivery. They should feel natural and intimate, never dramatic or sharp.\n* **Consonants:** Soft articulation. No hard attacks. T’s, K’s, and P’s are rounded and controlled to maintain a silky flow.\n* **Pacing:** Slow and deliberate (≈ 75–85 words per minute). Allow space between phrases to let the emotion settle.\n* **Tone:** Feminine, warm, velvety. Confident but understated. The voice attracts rather than commands.\n* **Delivery:** Close and intimate, as if speaking directly to one person. The voice should feel like it surrounds the listener, not projects at them.\n* **Emotion:** Elegance, softness, sensual calm, refined luxury.\n\n### SAMPLE CONTEXT\nElara is ideal for high-end feminine perfume campaigns where the focus is on emotional resonance, identity, and subtle attraction. This voice is used when the brand wants to create a lasting sensory impression—quiet, refined, and deeply memorable.",
+    "defaultVoice": "Despina",
+    "templateText": "..حَلَاوَةٌ هَادِئَةْ.....\n \n\t…دِفْءٌ خَفِيفٌ يَلُفُّكِ…\n \n. شَيْءُ يَبْدَأُ بِهُدُوءْ...\n \n...وَرْدٌ نَاعِمْ…\n \n...إِحْسَاسٌ رَاقٍ...\n \n...هَذَا أَنْتِ...\n \n...رُوزِيلْ ...\n \n\n...فَخَامَةٌ.\n لا تَتَكَرَّرْ.…..\n ",
+    "color": "white",
+    "icon": "plus",
+    "isCustom": true,
+    "pitch": 0.5,
+    "rate": 1,
+    "tone": "energetic"
+  },
+  {
+    "id": "preset_1795073670144",
+    "name": "ZHR THRILLER ENGLISH",
+    "description": "بريسيت بصوت Algenib وسرعة 0.9x",
+    "defaultVoice": "Algenib",
+    "templateText": "in a world where quarterly goals were thought to be impossible\none team dared to defy the odds\nthey faced bugs",
+    "color": "green",
+    "icon": "circle",
+    "isCustom": true,
+    "customVoiceSettings": {
+      "pitch": -5,
+      "speed": 1,
+      "intensity": 49,
+      "style": "cinematic",
+      "tone": "deep",
+      "dialect": "General American",
+      "purpose": "cinematic narration"
+    },
+    "customEmotionSettings": {
+      "autoAnalyze": false,
+      "manualEmotion": "Epic Gravity & Thrill",
+      "emotionalStyle": "cinematic"
+    }
+  },
+  {
+    "id": "preset_1795074130315_s4h0",
+    "name": "مراجعة تقنية متزنة - إصدار V2",
+    "description": "نبرة هادئة ورصينة لمراجعات الهواتف والأجهزة الذكية - تم تحديث النمط إلى الأحمر السينمائي",
+    "defaultVoice": "Algieba",
+    "templateText": "في عالم تتسارع فيه الأحداث وتتبدل فيه المقاييس...\nفريق واحد تجرأ على خوض التحدي ومواجهة المستحيل.\nواجهوا الصعاب، حطموا العقبات، وصنعوا الفارق.\nوالآن... حان وقت الحقيقة.\nقريباً في شاشات العرض.",
+    "color": "red",
+    "icon": "square",
+    "isCustom": true,
+    "customVoiceSettings": {
+      "pitch": -5,
+      "speed": 1,
+      "intensity": 49,
+      "style": "cinematic",
+      "tone": "deep",
+      "dialect": "General American",
+      "purpose": "cinematic narration"
+    },
+    "customEmotionSettings": {
+      "autoAnalyze": false,
+      "manualEmotion": "Epic Gravity & Thrill",
+      "emotionalStyle": "cinematic"
+    }
+  },
+  {
+    "id": "demo_tags_master",
+    "name": "🎬 نموذج وسوم الإلقاء السريع",
+    "description": "نموذج عملي سينمائي يوضح استخدام الوقفات الدرامية، الهمس، الحماس، التوكيد، والنبرة الختامية",
+    "defaultVoice": "Charon",
+    "templateText": "[بغموض وتشويق] في عالمٍ تلاشت فيه كل الآمال... [وقفة: ثانية]\nحيث لم يعد هناك متسعٌ للتردد. [تنفس عميق]\n[بهمس] هل تسمع هذا الصوت في الأفق؟ [وقفة: نصف ثانية]\n[بحماس] إنه ليس مجرد صدى... [توكيد قوي] بل بداية فجر جديد!\n[بجدية ورصانة] عندما تقرر خوض التحدي، فلا مجال للتراجع.\n[نبرة ختامية] قريباً في دور العرض... سينيرجي للإنتاج السينمائي.",
+    "color": "yellow",
+    "icon": "triangle",
+    "isCustom": true,
+    "customVoiceSettings": {
+      "pitch": 0,
+      "speed": 1,
+      "intensity": 75,
+      "style": "cinematic",
+      "tone": "deep",
+      "dialect": "Modern Standard Arabic",
+      "purpose": "cinematic narration"
+    },
+    "customEmotionSettings": {
+      "autoAnalyze": false,
+      "manualEmotion": "dramatic",
+      "emotionalStyle": "cinematic"
+    }
+  },
+  {
+    "id": "demo_podcast_dialogue",
+    "name": "🎙️ نموذج بودكاست ثنائي تفاعلي",
+    "description": "نموذج تفاعلي لبودكاست حواري يوضح تبادل الأدوار بين المقدم والضيف مع الضحك والتفاعل والوقفات الطبيعية",
+    "defaultVoice": "Fenrir",
+    "templateText": "[المقدم: سعد] [بابتسامة وترحاب] مرحباً بكم جميعاً في حلقة جديدة من بودكاست \"حديث الأفكار\"... [وقفة: نصف ثانية] ضيفنا اليوم خبير في الذكاء الاصطناعي وصناعة المستقبل. أهلاً بك يا منى!\n\n[الضيف: منى] [بفرح وعفوية] أهلاً بك يا سعد، وسعيدة جداً بوجودي معكم ومع المتابعين اليوم! [ضحكة خفيفة]\n\n[المقدم: سعد] [بجدية واهتمام] السؤال الأبرز الذي يشغل الجميع مؤخراً: [وقفة: ثانية] هل سيغير الذكاء الاصطناعي قواعد اللعبة بالكامل؟\n\n[الضيف: منى] [بثقة وتأنٍ] بلا أدنى شك، التغيير لم يعد قادماً... [توكيد قوي] بل نحن نعيش في قلبه الآن!\n\n[المقدم: سعد] [نبرة ختامية] ترقبوا الحلقة كاملة عبر منصات البودكاست المفضلة لديكم.",
+    "color": "blue",
+    "icon": "half-circle",
+    "isCustom": true,
+    "customVoiceSettings": {
+      "pitch": 0,
+      "speed": 1,
+      "intensity": 50,
+      "style": "natural",
+      "tone": "youthful",
+      "dialect": "Modern Standard Arabic",
+      "purpose": "podcast"
+    },
+    "customEmotionSettings": {
+      "autoAnalyze": false,
+      "manualEmotion": "cheerful",
+      "emotionalStyle": "natural"
+    }
+  }
+]

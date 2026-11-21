@@ -17,6 +17,9 @@ interface StyleSelectorProps {
   onSaveCurrentAsPreset?: () => void;
   onExportPresets?: () => void;
   onImportPresets?: (file: File) => void;
+  onExportSingle?: (preset: IntroStyle) => void;
+  cloudSyncStatus?: 'idle' | 'syncing' | 'synced' | 'error';
+  onSyncPresets?: () => void;
 }
 
 interface StyleButtonProps {
@@ -26,6 +29,7 @@ interface StyleButtonProps {
   effectiveAvatarSrc?: string;
   onDelete?: (e: React.MouseEvent) => void;
   onEdit?: (e: React.MouseEvent) => void;
+  onExportSingle?: (e: React.MouseEvent) => void;
 }
 
 const StyleButton: React.FC<StyleButtonProps> = ({ 
@@ -35,6 +39,7 @@ const StyleButton: React.FC<StyleButtonProps> = ({
   effectiveAvatarSrc,
   onDelete,
   onEdit, 
+  onExportSingle,
 }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -73,6 +78,18 @@ const StyleButton: React.FC<StyleButtonProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {style.isCustom && onExportSingle && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExportSingle(e);
+            }}
+            title="تصدير هذا البريسيت بمفرده كملف منفصل (JSON)"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs border border-bauhaus-black shadow-xs transition-colors cursor-pointer"
+          >
+            📤
+          </button>
+        )}
         {style.isCustom && onEdit && (
           <button
             onClick={(e) => {
@@ -115,6 +132,9 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
   onSaveCurrentAsPreset,
   onExportPresets,
   onImportPresets,
+  onExportSingle,
+  cloudSyncStatus = 'idle',
+  onSyncPresets,
 }) => {
   return (
     <div className="flex flex-col h-full bg-bauhaus-white">
@@ -148,8 +168,8 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
             <button
               type="button"
               onClick={onExportPresets}
-              className="flex-1 py-1 px-2 bg-white hover:bg-gray-100 border border-bauhaus-black text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm"
-              title="تصدير جميع البريسيتات المحفوظة إلى ملف JSON"
+              className="flex-1 py-1 px-2 bg-white hover:bg-yellow-100 border border-bauhaus-black text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1 cursor-pointer transition-all shadow-sm"
+              title="تصدير بريسيت محدد، أو عدة بريسيتات معينة، أو الكل كـ JSON"
             >
               <span>📤</span>
               <span>تصدير JSON</span>
@@ -183,9 +203,40 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
         {/* Custom Presets Section */}
         {customPresets.length > 0 && (
           <div className="border-b-4 border-bauhaus-black bg-gray-50">
-            <div className="px-4 py-1.5 bg-bauhaus-black text-white text-[10px] font-black uppercase tracking-wider flex justify-between items-center">
-              <span>بريسيتاتي المحفوظة ({customPresets.length})</span>
-              <span className="text-bauhaus-yellow">⭐ CUSTOM</span>
+            <div className="px-3 py-1.5 bg-bauhaus-black text-white text-[10px] font-black uppercase tracking-wider flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <span>بريسيتاتي المحفوظة ({customPresets.length})</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded-xs font-bold flex items-center gap-0.5 ${
+                    cloudSyncStatus === 'synced'
+                      ? 'bg-green-700 text-white'
+                      : cloudSyncStatus === 'syncing'
+                      ? 'bg-amber-600 text-white animate-pulse'
+                      : 'bg-gray-600 text-white'
+                  }`}
+                  title={
+                    cloudSyncStatus === 'synced'
+                      ? 'محفوظ أونلاين ومتزامن سحابياً'
+                      : cloudSyncStatus === 'syncing'
+                      ? 'جاري المزامنة مع السحابة...'
+                      : 'وضع العمل المحلي'
+                  }
+                >
+                  {cloudSyncStatus === 'syncing' ? '⏳ جاري المزامنة' : '☁️ سحابي'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {onSyncPresets && (
+                  <button
+                    onClick={onSyncPresets}
+                    title="تحديث ومزامنة البريسيتات مع السحابة أونلاين"
+                    className="hover:scale-110 active:rotate-180 transition-transform cursor-pointer text-xs"
+                  >
+                    🔄
+                  </button>
+                )}
+                <span className="text-bauhaus-yellow">⭐ CUSTOM</span>
+              </div>
             </div>
             {customPresets.map((preset) => (
               <StyleButton
@@ -195,6 +246,7 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
                 onClick={() => onSelect(preset)}
                 onEdit={() => onEditPreset && onEditPreset(preset)}
                 onDelete={() => onDeletePreset && onDeletePreset(preset.id)}
+                onExportSingle={() => onExportSingle && onExportSingle(preset)}
               />
             ))}
           </div>

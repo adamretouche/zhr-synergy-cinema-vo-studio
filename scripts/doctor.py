@@ -110,6 +110,8 @@ def check_audio_speech_isolation():
     print_header("4. فحص عزل التوجيهات وضمان عدم قراءة تعليمات النظام (Strict Isolation)")
     # Check server.ts prompt formatting
     server_path = os.path.join(os.path.dirname(__file__), "..", "server.ts")
+    if not os.path.exists(server_path):
+        server_path = '/Users/zhr/antigravity/03--ORIGNAL--Synergy-Intro-للافلام-تعليق-صوتي-/server.ts'
     if os.path.exists(server_path):
         with open(server_path, "r", encoding="utf-8") as f:
             code = f.read()
@@ -120,6 +122,8 @@ def check_audio_speech_isolation():
     
     # Check constants.ts audioSrc
     const_path = os.path.join(os.path.dirname(__file__), "..", "constants.ts")
+    if not os.path.exists(const_path):
+        const_path = '/Users/zhr/antigravity/03--ORIGNAL--Synergy-Intro-للافلام-تعليق-صوتي-/constants.ts'
     if os.path.exists(const_path):
         with open(const_path, "r", encoding="utf-8") as f:
             code = f.read()
