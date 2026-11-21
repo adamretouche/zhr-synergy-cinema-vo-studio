@@ -92,7 +92,7 @@ def check_gemini_api(key: str):
     # Test curl ping
     try:
         import urllib.request
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash?key={key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash?key={key}"
         req = urllib.request.Request(url, headers={"User-Agent": "aistudio-build"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             if resp.status == 200:

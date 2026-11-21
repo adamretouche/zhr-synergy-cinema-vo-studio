@@ -145,8 +145,11 @@ async def main():
         if speed is not None:
             try:
                 spd_val = float(speed)
-                rate_pct = int(round((spd_val - 1.0) * 100))
-                rate = f"{rate_pct:+d}%"
+                if 0.95 <= spd_val <= 1.05:
+                    rate = "+0%"
+                else:
+                    rate_pct = int(round((spd_val - 1.0) * 100))
+                    rate = f"{rate_pct:+d}%"
             except Exception:
                 rate = input_data.get("rate", "+0%")
         else:
@@ -156,9 +159,11 @@ async def main():
         if pitch_val is not None:
             try:
                 p_num = int(pitch_val)
-                # Scale pitch into natural human vocal register (-4 becomes -10Hz, -5 becomes -12Hz)
-                hz_shift = int(round(p_num * 2.5))
-                pitch = f"{hz_shift:+d}Hz"
+                if abs(p_num) <= 1:
+                    pitch = "+0Hz"
+                else:
+                    hz_shift = int(round(p_num * 1.5))
+                    pitch = f"{hz_shift:+d}Hz"
             except Exception:
                 pitch = "+0Hz"
         else:

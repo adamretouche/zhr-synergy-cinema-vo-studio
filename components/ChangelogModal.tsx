@@ -60,6 +60,39 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             </ul>
           </div>
 
+          {/* Version 1.0.1-beta Entry */}
+          <div className="border-3 border-bauhaus-black bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-bauhaus-black pb-2.5 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-bauhaus-blue text-white font-mono font-black text-xs border border-black rounded-xs">
+                  v1.0.1-beta
+                </span>
+                <span className="font-black text-sm text-bauhaus-black">
+                  إصدار المعالجة الصوتية النقية ومنع الروبوتية والتزامن (Natural Voice & Anti-Glitch Release)
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-gray-500 font-mono">2026-11-21</span>
+            </div>
+
+            <div className="space-y-3 leading-relaxed">
+              <div>
+                <h4 className="font-black text-xs text-bauhaus-red uppercase mb-1 flex items-center gap-1">
+                  <span>🛠️</span>
+                  <span>الإصلاحات والتحسينات الجذرية:</span>
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-gray-700 font-semibold pr-1">
+                  <li><strong>إلغاء تشوهات الروبوتية:</strong> إلغاء معالجة Pitch Shifting في FFmpeg وضبط الأساس على <code>pitch: 0</code> لمنع تشويه رنين الحنجرة البشري.</li>
+                  <li><strong>تمرير صوتي مباشر 100% (Direct Pass-through):</strong> إرسال الصوت العصبي النقي 24kHz مباشرة من Gemini API دون أي معالجات مشوّهة عند استخدام الإعدادات القياسية.</li>
+                  <li><strong>تنقية الأوامر التوجيهية:</strong> استبدال التوجيهات الحادة والمبالغ فيها بتوجيهات نبرة إنسانية رخيمة وطبيعية وسينمائية متوازنة.</li>
+                  <li><strong>منع طقطقة الفواصل (De-Clicking):</strong> دمج مقاطع الصوت والوقفات بمايكرو-تلاشي انسيابي وصمت تنفسي طبيعي (65ms Organic Gap).</li>
+                  <li><strong>التناغم الصوتي التكيفي:</strong> حماية الأصوات النسائية والخفيفة من فرض نبرات الباريتون العميقة تلقائياً.</li>
+                  <li><strong>تطهير التخزين المؤقت للمتصفح:</strong> فحص تلقائي لـ localStorage وتصحيح قيم الـ pitch القديمة لمنع عودة الصوت الآلي.</li>
+                  <li><strong>حفظ النسخة السابقة v1.0.0:</strong> توثيق وتثبيت الإصدار v1.0.0 بشكل مستقل ودائم في كل من GitHub وGoogle Drive.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           {/* Version 1.0.0 Entry */}
           <div className="border-3 border-bauhaus-black bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-bauhaus-black pb-2.5 mb-3">

@@ -8,7 +8,9 @@ PORT=3000
 URL="http://localhost:$PORT"
 
 export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:$HOME/.local/bin:$PATH"
-export GEMINI_API_KEY="${GEMINI_API_KEY:-AIzaSyDw5V4eAoOe2Uf0OCkVGBckoZlXLB6acU0}"
+if [ -f "$PROJECT_DIR/.env" ]; then
+    export $(grep -v '^#' "$PROJECT_DIR/.env" | xargs)
+fi
 
 if lsof -i :$PORT >/dev/null 2>&1; then
     open "$URL"

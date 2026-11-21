@@ -111,7 +111,7 @@ export interface GeneratedAudio {
 }
 
 /**
- * Generates spoken audio via Google Gemini 2.5 Flash / Pro Preview TTS.
+ * Generates spoken audio via Google Gemini 3.8 Flash & Gemini 3.8 Flash-Lite TTS.
  * STRICT COMPLIANCE: Reads original script verbatim with zero altered or spoken markup words.
  */
 export const generateSpeech = async (
@@ -122,13 +122,15 @@ export const generateSpeech = async (
   voiceSettings?: VoiceSettings,
   emotionSettings?: EmotionSettings,
   styleId?: string,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<GeneratedAudio> => {
   const response = await fetch('/api/gemini/generate-speech', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    signal,
     body: JSON.stringify({
       text,
       voiceName,
@@ -250,7 +252,7 @@ export const convertAudioToMp3 = async (
 };
 
 /**
- * Generates continuous multi-speaker podcast or dialogue audio via Gemini 2.5 Multi-Speaker TTS.
+ * Generates continuous multi-speaker podcast or dialogue audio via Gemini 3.8 Multi-Speaker TTS.
  */
 export const generateMultiSpeakerSpeech = async (
   dialogueText: string,
@@ -259,13 +261,15 @@ export const generateMultiSpeakerSpeech = async (
   speed?: number,
   pitch?: number,
   apiKey?: string,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<GeneratedAudio> => {
   const response = await fetch('/api/gemini/generate-multispeaker', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    signal,
     body: JSON.stringify({
       dialogueText,
       speakers,
@@ -357,4 +361,35 @@ export const tashkeelArabicScript = async (
 
   const data = await response.json();
   return data.diacritized || text;
+};
+
+export interface TranscribeResult {
+  success: boolean;
+  text: string;
+  srt: string;
+  words: { word: string; start: number; end: number; probability: number }[];
+  error?: string;
+}
+
+/**
+ * Transcribes audio via Whisper to generate word-level timestamps and SRT subtitles.
+ */
+export const transcribeAudioToSrt = async (
+  audioBase64: string,
+  language: string = 'ar'
+): Promise<TranscribeResult> => {
+  const response = await fetch('/api/audio/transcribe-srt', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ audioData: audioBase64, language }),
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({}));
+    throw new Error(errorJson.error || 'Failed to transcribe audio to SRT.');
+  }
+
+  return await response.json();
 };

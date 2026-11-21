@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALL_VOICES } from '../voices';
 import { VoiceSettings, EmotionSettings } from '../types';
 
@@ -61,6 +61,49 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [localVoice, setLocalVoice] = useState(selectedVoice);
   const [localVoiceSettings, setLocalVoiceSettings] = useState(voiceSettings);
   const [localEmotionSettings, setLocalEmotionSettings] = useState(emotionSettings);
+  const [previewPlayingVoice, setPreviewPlayingVoice] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playVoicePreview = (voiceName: string) => {
+    if (previewPlayingVoice === voiceName) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      setPreviewPlayingVoice(null);
+      return;
+    }
+
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    const audio = new Audio(`/api/voices/preview/${encodeURIComponent(voiceName)}`);
+    previewAudioRef.current = audio;
+    setPreviewPlayingVoice(voiceName);
+
+    audio.onended = () => {
+      setPreviewPlayingVoice(null);
+      previewAudioRef.current = null;
+    };
+    audio.onerror = () => {
+      setPreviewPlayingVoice(null);
+      previewAudioRef.current = null;
+    };
+    audio.play().catch(() => {
+      setPreviewPlayingVoice(null);
+      previewAudioRef.current = null;
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+      setPreviewPlayingVoice(null);
+    }
+  }, [isOpen]);
 
   // Initialize local state when modal opens
   useEffect(() => {
@@ -279,14 +322,46 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                         <span className="text-[10px] uppercase opacity-70">{voice.ssmlGender} • {voice.style}</span>
                       </div>
                     </div>
-                    <input 
-                      type="radio" 
-                      name="voice" 
-                      value={voice.name}
-                      checked={localVoice === voice.name}
-                      onChange={(e) => setLocalVoice(e.target.value)}
-                      className="sr-only" 
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          playVoicePreview(voice.name);
+                        }}
+                        className={`px-2 py-1 text-[10px] font-black border-2 border-current rounded transition-all flex items-center gap-1 cursor-pointer shadow-xs active:translate-y-0.5 ${
+                          previewPlayingVoice === voice.name
+                            ? 'bg-red-500 text-white border-red-700 animate-pulse'
+                            : 'bg-white text-black hover:bg-yellow-300'
+                        }`}
+                        title="استماع فوري مجاني لنبرة هذا الصوت بدون استهلاك توكنات"
+                      >
+                        <span>{previewPlayingVoice === voice.name ? '⏹' : '▶'}</span>
+                        <span className="text-[9px] uppercase">{previewPlayingVoice === voice.name ? 'إيقاف' : 'معاينة'}</span>
+                      </button>
+                      <input 
+                        type="radio" 
+                        name="voice" 
+                        value={voice.name}
+                        checked={localVoice === voice.name}
+                        onChange={(e) => {
+                          const newV = e.target.value;
+                          setLocalVoice(newV);
+                          const vData = ALL_VOICES.find(v => v.name.toLowerCase() === newV.toLowerCase());
+                          setLocalVoiceSettings(prev => {
+                            let nextTone = prev.tone;
+                            if (vData && vData.ssmlGender === 'FEMALE') {
+                              if (nextTone === 'deep' || nextTone === 'gravelly') {
+                                nextTone = 'warm';
+                              }
+                            }
+                            return { ...prev, pitch: 0, tone: nextTone };
+                          });
+                        }}
+                        className="sr-only" 
+                      />
+                    </div>
                   </label>
                 ))}
               </div>

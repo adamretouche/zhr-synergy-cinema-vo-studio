@@ -20,7 +20,7 @@ import { ChangelogModal } from './components/ChangelogModal';
 import { MultiSpeakerStudio } from './components/MultiSpeakerStudio';
 import { DirectorProfileStudio } from './components/DirectorProfileStudio';
 import { DocumentationView } from './components/DocumentationView';
-import { generateSpeech, createWavBlob, analyzeEmotion, analyzeDramaticDirection, convertAudioToMp3, tashkeelArabicScript } from './services/geminiService';
+import { generateSpeech, createWavBlob, analyzeEmotion, analyzeDramaticDirection, convertAudioToMp3, tashkeelArabicScript, transcribeAudioToSrt } from './services/geminiService';
 import { getCachedAudio, saveToCache, generateCacheKey, clearAllAudioCache } from './lib/audioCache';
 import { 
   INTRO_STYLES, 
@@ -37,8 +37,8 @@ import {
 
 const Footer: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`p-4 border-t-4 border-bauhaus-black bg-white text-[9px] text-gray-500 font-bold uppercase tracking-wider flex justify-between items-center ${className}`}>
-    <span>Synergy Intro للافلام تعليق صوتي</span>
-    <span>Created by <a href="https://x.com/leslienooteboom" target="_blank" rel="noopener noreferrer" className="underline hover:text-bauhaus-red transition-colors">@leslienooteboom</a></span>
+    <span>Synergy Cinema Voice-Over Studio — استوديو سينيرجي للأفلام</span>
+    <span>ZHR Master Motion & Cinema Studio</span>
   </div>
 );
 
@@ -79,7 +79,17 @@ const App: React.FC = () => {
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => {
     try {
       const saved = localStorage.getItem('synergy_voice_settings');
-      return saved ? JSON.parse(saved) : DEFAULT_VOICE_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Cleanse and sanitize stale pitch/speed from earlier sessions to guarantee human warmth
+        return {
+          ...DEFAULT_VOICE_SETTINGS,
+          ...parsed,
+          pitch: 0, // Always enforce pitch 0 to prevent FFmpeg phase vocoder robotic artifacts
+          speed: typeof parsed.speed === 'number' && parsed.speed >= 0.85 && parsed.speed <= 1.25 ? parsed.speed : 1.0,
+        };
+      }
+      return DEFAULT_VOICE_SETTINGS;
     } catch {
       return DEFAULT_VOICE_SETTINGS;
     }
@@ -107,6 +117,8 @@ const App: React.FC = () => {
   const [retryCooldown, setRetryCooldown] = useState<number>(0);
   const [downloadData, setDownloadData] = useState<{ url: string; filename: string; rawBase64?: string } | null>(null);
   const [isConvertingMp3, setIsConvertingMp3] = useState(false);
+  const [isTranscribingSrt, setIsTranscribingSrt] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [flagIndex, setFlagIndex] = useState(0);
 
   // Platform Studio Mode (Single Voiceover, Multi-Speaker Podcast, Director's Profile, Documentation)
@@ -116,13 +128,13 @@ const App: React.FC = () => {
 
   const handleSubStudioUsage = (tokens: number, cost: number, seconds: number) => {
     setUsageStats((prev) => {
-      const costToAdd = prev.mode === 'PAID' ? cost : 0;
+      const costToAdd = cost || 0;
       const next: UsageStats = {
         ...prev,
         requestCount: prev.requestCount + 1,
         totalTokens: prev.totalTokens + tokens,
         totalSeconds: prev.totalSeconds + seconds,
-        totalCostUSD: prev.totalCostUSD + costToAdd,
+        totalCostUSD: Number((prev.totalCostUSD + costToAdd).toFixed(6)),
       };
       localStorage.setItem('synergy_usage_stats', JSON.stringify(next));
       return next;
@@ -305,6 +317,30 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('synergy_emotion_settings', JSON.stringify(emotionSettings));
   }, [emotionSettings]);
+
+  // Seamless Voice Switching: Harmonizes tone, clears stale director notes, and keeps pitch at 0
+  const handleVoiceChange = (newVoice: string) => {
+    setSelectedVoice(newVoice);
+    setDramaticProfile(null); // Clear previous voice's director blueprint
+    setDownloadData(null);
+
+    const voiceData = ALL_VOICES.find(v => v.name.toLowerCase() === newVoice.toLowerCase());
+    setVoiceSettings(prev => {
+      let nextTone = prev.tone;
+      let nextStyle = prev.style;
+      if (voiceData && voiceData.ssmlGender === 'FEMALE') {
+        if (nextTone === 'deep' || nextTone === 'gravelly') {
+          nextTone = 'warm';
+        }
+      }
+      return {
+        ...prev,
+        pitch: 0, // Guarantees zero DSP pitch-shift artifacts regardless of previous state
+        tone: nextTone,
+        style: nextStyle,
+      };
+    });
+  };
 
   // Update text and default voice when style changes
   const handleStyleChange = (style: IntroStyle) => {
@@ -506,11 +542,16 @@ const App: React.FC = () => {
   };
 
   const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     if (audioElemRef.current) {
       audioElemRef.current.pause();
       audioElemRef.current.currentTime = 0;
       audioElemRef.current = null;
     }
+    setIsGenerating(false);
     setIsPlaying(false);
     setPlaybackProgress(0);
   };
@@ -594,10 +635,18 @@ const App: React.FC = () => {
     setError(null);
     setDownloadData(null);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const currentGenId = ++generationIdRef.current;
 
     try {
-      const activeVoiceSettings = vSettings || voiceSettings;
+      const rawSettings = vSettings || voiceSettings;
+      // Enforce pitch 0 always to eliminate robotic DSP phase vocoder artifacts
+      const activeVoiceSettings: VoiceSettings = {
+        ...rawSettings,
+        pitch: 0,
+      };
 
       // --- GEMINI 2.5 / 3.8 TTS GENERATION (SERVER PROXY) ---
       const activeStyleInstruction = stylePrompt || (dramaticProfile?.directorNotes ? `${getStylePrompt()}\n${dramaticProfile.directorNotes}` : getStylePrompt());
@@ -627,7 +676,8 @@ const App: React.FC = () => {
           activeVoiceSettings,
           activeEmotionSettings,
           currentStyle.id,
-          selectedModel
+          selectedModel,
+          controller.signal
         );
 
         if (currentGenId !== generationIdRef.current) {
@@ -719,6 +769,11 @@ const App: React.FC = () => {
       setIsPlaying(true);
 
     } catch (err: any) {
+      if (err?.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+        console.log('[Generation Cancelled] Client aborted voice generation.');
+        setIsGenerating(false);
+        return;
+      }
       if (currentGenId !== generationIdRef.current) {
         setIsGenerating(false);
         return;
@@ -962,8 +1017,59 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExportSrt = async (format: 'srt' | 'json' = 'srt') => {
+    if (!downloadData) return;
+    setIsTranscribingSrt(true);
+    try {
+      let base64 = downloadData.rawBase64;
+      if (!base64) {
+        const res = await fetch(downloadData.url);
+        const arrayBuf = await res.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuf);
+        base64 = uint8ArrayToBase64(uint8);
+      }
+      const res = await transcribeAudioToSrt(base64, 'ar');
+      if (!res.success) throw new Error(res.error || 'Whisper transcription failed');
+
+      if (format === 'srt') {
+        const blob = new Blob([res.srt], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${downloadData.filename.replace(/\.wav$/i, '')}_subtitles.srt`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        setNotification('✓ تم استخراج وتصدير ملف الترجمة المتزامن (.srt) عبر Whisper بنجاح!');
+      } else {
+        const blob = new Blob([JSON.stringify(res.words, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${downloadData.filename.replace(/\.wav$/i, '')}_word_timestamps.json`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        setNotification('✓ تم تصدير توقيت الكلمات بالمللي ثانية (.json) بنجاح لمشاريع الموشن جرافيك!');
+      }
+      setTimeout(() => setNotification(null), 3500);
+    } catch (err: any) {
+      console.error('SRT export error:', err);
+      alert(`فشل تصدير الترجمة: ${err.message || String(err)}`);
+    } finally {
+      setIsTranscribingSrt(false);
+    }
+  };
+
   // Live check for Gemini API Health & connectivity status
   const checkApiHealth = useCallback(async () => {
+    if (typeof document !== 'undefined' && document.hidden) {
+      return;
+    }
     try {
       const activeKey = useCustomApiKey && customApiKey ? customApiKey : undefined;
       const url = activeKey 
@@ -999,8 +1105,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     checkApiHealth();
-    const interval = setInterval(checkApiHealth, 20000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkApiHealth, 60000);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkApiHealth();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [checkApiHealth]);
 
   // Handle retry cooldown
@@ -1266,10 +1381,10 @@ const App: React.FC = () => {
                   type="button"
                   onClick={() => setIsChangelogOpen(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1 border-2 border-bauhaus-black bg-bauhaus-black hover:bg-gray-800 text-bauhaus-yellow text-[10px] md:text-xs font-black uppercase transition-all shadow-hard-sm active:translate-y-0.5 cursor-pointer"
-                  title="سجل التحديثات والإصدارات (Changelog) - الإصدار v1.0.0"
+                  title="سجل التحديثات والإصدارات (Changelog) - الإصدار v1.0.1-beta"
                 >
                   <span>📜</span>
-                  <span>v1.0.0</span>
+                  <span>v1.0.1-beta</span>
                 </button>
               </div>
             </div>
@@ -1343,7 +1458,7 @@ const App: React.FC = () => {
                   <span>السجل والتصدير</span>
                 </button>
                 <a
-                  href="https://aistudio.google.com/spend?project=gen-lang-client-0434725851"
+                  href="https://aistudio.google.com/spend"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-2 py-0.5 bg-purple-700 hover:bg-purple-600 text-white border border-purple-400 font-bold text-[10px] rounded cursor-pointer transition-all flex items-center gap-1 shadow-xs"
@@ -1984,6 +2099,36 @@ const App: React.FC = () => {
                 <span>{isConvertingMp3 ? '⏳' : '📥'}</span>
                 <span>{isConvertingMp3 ? 'جارِ التحويل...' : 'MP3 | خفيف'}</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => handleExportSrt('srt')}
+                disabled={!downloadData || isTranscribingSrt}
+                className={`
+                  flex items-center gap-1.5 px-3 py-2 md:py-2.5 border-2 border-bauhaus-black font-bold uppercase text-xs transition-all shadow-hard-sm cursor-pointer
+                  ${isTranscribingSrt ? 'bg-gray-300 text-gray-700 cursor-wait' : 'bg-purple-600 hover:bg-purple-500 text-white active:translate-y-0.5'}
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                title="توليد وتصدير ملف ترجمة متزامن بالمللي ثانية (.srt) عبر Whisper للمونتاج والموشن جرافيك"
+              >
+                <span>{isTranscribingSrt ? '⏳' : '📜'}</span>
+                <span>{isTranscribingSrt ? 'تفريغ...' : 'SRT | ترجمة'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleExportSrt('json')}
+                disabled={!downloadData || isTranscribingSrt}
+                className={`
+                  hidden lg:flex items-center gap-1.5 px-2.5 py-2 md:py-2.5 border-2 border-bauhaus-black font-bold uppercase text-xs transition-all shadow-hard-sm cursor-pointer
+                  ${isTranscribingSrt ? 'bg-gray-300 text-gray-700 cursor-wait' : 'bg-white hover:bg-gray-100 text-black active:translate-y-0.5'}
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                title="تصدير توقيت كل كلمة بدقة بالغة (.json) لمشاريع Remotion وموشن جرافيك ZHR"
+              >
+                <span>⚡</span>
+                <span>Word JSON</span>
+              </button>
             </div>
 
             {/* Center: Play / Stop Action */}
@@ -2067,7 +2212,7 @@ const App: React.FC = () => {
         isOpen={isConfigOpen} 
         onClose={() => setIsConfigOpen(false)}
         selectedVoice={selectedVoice}
-        onVoiceChange={setSelectedVoice}
+        onVoiceChange={handleVoiceChange}
         customApiKey={customApiKey}
         onCustomApiKeyChange={setCustomApiKey}
         useCustomApiKey={useCustomApiKey}
@@ -2100,7 +2245,7 @@ const App: React.FC = () => {
         currentVoice={selectedVoice}
         onSave={(newPrompt, newVoice) => {
             setCustomStylePrompt(newPrompt);
-            if (newVoice) setSelectedVoice(newVoice);
+            if (newVoice) handleVoiceChange(newVoice);
             setDownloadData(null);
         }}
       />

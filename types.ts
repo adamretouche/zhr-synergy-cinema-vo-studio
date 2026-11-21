@@ -31,7 +31,11 @@ export interface IntroStyle {
   isCustom?: boolean;
   customVoiceSettings?: VoiceSettings;
   customEmotionSettings?: EmotionSettings;
+  systemInstruction?: string;
+  stylePrompt?: string;
 }
+
+export type StylePreset = IntroStyle;
 
 export interface HistoryEntry {
   id: string;

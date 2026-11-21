@@ -116,36 +116,6 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
   onExportPresets,
   onImportPresets,
 }) => {
-  const [loadedAvatars, setLoadedAvatars] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const createdUrls: string[] = [];
-    const loadThumbnails = async () => {
-      const loaded: Record<string, string> = {};
-      await Promise.all(INTRO_STYLES.map(async (style) => {
-        if (style.avatarSrc) {
-          try {
-            const response = await fetch(style.avatarSrc);
-            if (response.ok) {
-              const blob = await response.blob();
-              const url = URL.createObjectURL(blob);
-              createdUrls.push(url);
-              loaded[style.id] = url;
-            }
-          } catch (e) {
-            console.error("Failed to load avatar:", style.avatarSrc, e);
-          }
-        }
-      }));
-      setLoadedAvatars(loaded);
-    };
-    loadThumbnails();
-
-    return () => {
-      createdUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
-
   return (
     <div className="flex flex-col h-full bg-bauhaus-white">
       
@@ -237,7 +207,6 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
             style={style}
             isSelected={selectedStyle.id === style.id}
             onClick={() => onSelect(style)}
-            effectiveAvatarSrc={loadedAvatars[style.id] || style.avatarSrc}
           />
         ))}
 
