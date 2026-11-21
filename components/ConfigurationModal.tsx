@@ -105,15 +105,18 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     }
   }, [isOpen]);
 
-  // Initialize local state when modal opens
+  const prevIsOpenRef = useRef(false);
+
+  // Initialize local state strictly when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setLocalVoice(selectedVoice);
       setLocalVoiceSettings(voiceSettings);
       setLocalEmotionSettings(emotionSettings);
       setTempApiKey(customApiKey);
       setActiveTab(initialTab);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, selectedVoice, voiceSettings, emotionSettings, customApiKey, initialTab]);
 
   const hasChanges = useMemo(() => {
@@ -122,6 +125,20 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
            JSON.stringify(localEmotionSettings) !== JSON.stringify(emotionSettings) ||
            tempApiKey !== customApiKey;
   }, [localVoice, selectedVoice, localVoiceSettings, voiceSettings, localEmotionSettings, emotionSettings, tempApiKey, customApiKey]);
+
+  const handleSelectVoice = (voiceName: string) => {
+    setLocalVoice(voiceName);
+    const vData = ALL_VOICES.find(v => v.name.toLowerCase() === voiceName.toLowerCase());
+    setLocalVoiceSettings(prev => {
+      let nextTone = prev.tone;
+      if (vData && vData.ssmlGender === 'FEMALE') {
+        if (nextTone === 'deep' || nextTone === 'gravelly') {
+          nextTone = 'warm';
+        }
+      }
+      return { ...prev, pitch: 0, tone: nextTone };
+    });
+  };
 
   const handleApply = () => {
     if (localVoice !== selectedVoice) onVoiceChange(localVoice);
@@ -287,83 +304,83 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <div className="flex flex-col h-full">
               <div className="mb-6">
                 <label className="block text-xl font-bold uppercase mb-1">Select Speaker Voice</label>
-                <div className="flex flex-col md:flex-row gap-4 mt-4">
-                  <div className="flex-1">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4">
+                  <div className="flex-1 w-full">
                     <label htmlFor="gender-filter" className="block text-xs font-bold uppercase mb-2">Filter by Gender</label>
                     <select 
                       id="gender-filter"
-                      className="w-full p-3 border-4 border-bauhaus-black font-bold bg-white focus:outline-none focus:ring-4 focus:ring-bauhaus-yellow"
+                      className="w-full p-3 border-4 border-bauhaus-black font-bold bg-white focus:outline-none focus:ring-4 focus:ring-bauhaus-yellow cursor-pointer"
                       value={filterGender}
                       onChange={(e) => setFilterGender(e.target.value)}
                     >
-                      <option value="ALL">All Genders</option>
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
+                      <option value="ALL">All Genders / كافة الأصوات</option>
+                      <option value="MALE">Male / الأصوات الرجالية</option>
+                      <option value="FEMALE">Female / الأصوات النسائية</option>
                     </select>
+                  </div>
+                  <div className="flex items-center gap-2 self-stretch md:self-end pb-1">
+                    <span className="text-xs font-bold uppercase text-gray-500">الصوت النشط:</span>
+                    <span className="px-3 py-1 bg-bauhaus-black text-bauhaus-yellow font-mono font-black text-xs border-2 border-black rounded-xs shadow-xs">
+                      {localVoice}
+                    </span>
                   </div>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Voice Selection">
-                {filteredVoices.map((voice) => (
-                  <label 
-                    key={voice.name}
-                    className={`
-                      flex items-center justify-between p-3 border-2 border-bauhaus-black cursor-pointer transition-colors
-                      ${localVoice === voice.name ? 'bg-bauhaus-black text-white' : 'bg-white hover:bg-bauhaus-yellow hover:text-bauhaus-black'}
-                    `}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-4 h-4 flex-shrink-0 border-2 border-current rounded-full flex items-center justify-center`}>
-                        {localVoice === voice.name && <div className="w-2 h-2 bg-current rounded-full" />}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-xs truncate">{voice.name}</span>
-                        <span className="text-[10px] uppercase opacity-70">{voice.ssmlGender} • {voice.style}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
+                {filteredVoices.map((voice) => {
+                  const isSelected = localVoice.toLowerCase() === voice.name.toLowerCase();
+                  return (
+                    <div 
+                      key={voice.name}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onClick={() => handleSelectVoice(voice.name)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          e.stopPropagation();
-                          playVoicePreview(voice.name);
-                        }}
-                        className={`px-2 py-1 text-[10px] font-black border-2 border-current rounded transition-all flex items-center gap-1 cursor-pointer shadow-xs active:translate-y-0.5 ${
-                          previewPlayingVoice === voice.name
-                            ? 'bg-red-500 text-white border-red-700 animate-pulse'
-                            : 'bg-white text-black hover:bg-yellow-300'
-                        }`}
-                        title="استماع فوري مجاني لنبرة هذا الصوت بدون استهلاك توكنات"
-                      >
-                        <span>{previewPlayingVoice === voice.name ? '⏹' : '▶'}</span>
-                        <span className="text-[9px] uppercase">{previewPlayingVoice === voice.name ? 'إيقاف' : 'معاينة'}</span>
-                      </button>
-                      <input 
-                        type="radio" 
-                        name="voice" 
-                        value={voice.name}
-                        checked={localVoice === voice.name}
-                        onChange={(e) => {
-                          const newV = e.target.value;
-                          setLocalVoice(newV);
-                          const vData = ALL_VOICES.find(v => v.name.toLowerCase() === newV.toLowerCase());
-                          setLocalVoiceSettings(prev => {
-                            let nextTone = prev.tone;
-                            if (vData && vData.ssmlGender === 'FEMALE') {
-                              if (nextTone === 'deep' || nextTone === 'gravelly') {
-                                nextTone = 'warm';
-                              }
-                            }
-                            return { ...prev, pitch: 0, tone: nextTone };
-                          });
-                        }}
-                        className="sr-only" 
-                      />
+                          handleSelectVoice(voice.name);
+                        }
+                      }}
+                      className={`
+                        flex items-center justify-between p-3 border-2 border-bauhaus-black cursor-pointer transition-all select-none
+                        ${isSelected ? 'bg-bauhaus-black text-white shadow-hard-sm -translate-y-0.5' : 'bg-white hover:bg-bauhaus-yellow hover:text-bauhaus-black'}
+                      `}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-5 h-5 flex-shrink-0 border-2 ${isSelected ? 'border-bauhaus-yellow bg-bauhaus-black' : 'border-bauhaus-black bg-white'} rounded-full flex items-center justify-center transition-colors`}>
+                          {isSelected && <div className="w-2.5 h-2.5 bg-bauhaus-yellow rounded-full" />}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className={`font-bold text-xs truncate ${isSelected ? 'text-bauhaus-yellow' : ''}`}>{voice.name}</span>
+                          <span className={`text-[10px] uppercase ${isSelected ? 'text-gray-300' : 'opacity-70'}`}>
+                            {voice.ssmlGender} • {voice.style}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            playVoicePreview(voice.name);
+                          }}
+                          className={`px-2 py-1 text-[10px] font-black border-2 border-current rounded transition-all flex items-center gap-1 cursor-pointer shadow-xs active:translate-y-0.5 ${
+                            previewPlayingVoice === voice.name
+                              ? 'bg-red-500 text-white border-red-700 animate-pulse'
+                              : 'bg-white text-black hover:bg-yellow-300'
+                          }`}
+                          title="استماع فوري مجاني لنبرة هذا الصوت بدون استهلاك توكنات"
+                        >
+                          <span>{previewPlayingVoice === voice.name ? '⏹' : '▶'}</span>
+                          <span className="text-[9px] uppercase">{previewPlayingVoice === voice.name ? 'إيقاف' : 'معاينة'}</span>
+                        </button>
+                      </div>
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

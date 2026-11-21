@@ -60,6 +60,39 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             </ul>
           </div>
 
+          {/* Version 2.0.0 Entry */}
+          <div className="border-3 border-bauhaus-black bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-bauhaus-black pb-2.5 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-bauhaus-yellow text-bauhaus-black font-mono font-black text-xs border border-black rounded-xs">
+                  v2.0.0
+                </span>
+                <span className="font-black text-sm text-bauhaus-black">
+                  الإصدار الرئيسي المعتمد (Major Release v2.0 — Cinema Production Edition)
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-gray-500 font-mono">2026-11-21</span>
+            </div>
+
+            <div className="space-y-3 leading-relaxed">
+              <div>
+                <h4 className="font-black text-xs text-bauhaus-red uppercase mb-1 flex items-center gap-1">
+                  <span>🌟</span>
+                  <span>المميزات الكبرى المعتمدة:</span>
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-gray-700 font-semibold pr-1">
+                  <li><strong>القضاء التام على الجليتش:</strong> خوارزمية ذكية متقدمة تقص ارتداد EOS Vocoder الشاذ وتنهي الصوت بهدوء غرفة طبيعي (15–44 amplitude).</li>
+                  <li><strong>التوليد المتوازي السريع (300% تسريع):</strong> معالجة 4 مقاطع دفعة واحدة للمقاطع الطويلة والوقفات الدرامية.</li>
+                  <li><strong>مشغل المقارنة المزدوج (A/B Comparison):</strong> حفظ الصوت السابق للمقارنة السمعية الفورية بنقرة واحدة وتنزيل أي من النسختين.</li>
+                  <li><strong>مساعد التشكيل مع التراجع الذكي:</strong> تشكيل فصيح دقيق مع الحفاظ الصارم على وسوم الإلقاء وزر تراجع بنقرة واحدة.</li>
+                  <li><strong>إصلاح وتحديث اختيار الأصوات:</strong> بطاقات تفاعلية فورية الاستجابة بالنقر المباشر وشارة توضيح الصوت النشط.</li>
+                  <li><strong>جاهزية الاستضافة السحابية 24/7:</strong> دعم المنافذ الديناميكية <code>$PORT</code> وملفات <code>render.yaml</code> و <code>Dockerfile</code> لتشغيل الاستوديو على الإنترنت طوال الوقت من أي جوال أو لابتوب.</li>
+                  <li><strong>أرشفة ثلاثية مستقلة:</strong> تثبيت v1.0.0 و v1.0.1-beta و v2.0.0 بشكل منفصل تماماً في GitHub وGoogle Drive.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           {/* Version 1.0.1-beta Entry */}
           <div className="border-3 border-bauhaus-black bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-bauhaus-black pb-2.5 mb-3">

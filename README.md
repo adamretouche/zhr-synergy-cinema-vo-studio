@@ -1,8 +1,8 @@
-# 🎙️ ZHR Synergy Cinema Intro & Voice-Over Studio v1.0.1-beta
+# 🎙️ ZHR Synergy Cinema Intro & Voice-Over Studio v2.0.0
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.1--beta-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-gold.svg)
 ![AI Model](https://img.shields.io/badge/Gemini%20API-2.5%20Flash%20%7C%203.8%20Flash%20Lite%20TTS-gold.svg)
 ![React](https://img.shields.io/badge/React-19.2-cyan.svg)
 ![Vite](https://img.shields.io/badge/Vite-6.4-purple.svg)

@@ -141,6 +141,9 @@ const App: React.FC = () => {
     });
   };
 
+  // Smart Tashkeel Undo State
+  const [preTashkeelText, setPreTashkeelText] = useState<string | null>(null);
+
   const handleQuickDiacritize = async () => {
     if (!text.trim()) return;
     setIsQuickDiacritizing(true);
@@ -148,6 +151,7 @@ const App: React.FC = () => {
       const apiKey = useCustomApiKey && customApiKey ? customApiKey : undefined;
       const diacritized = await tashkeelArabicScript(text, apiKey);
       if (diacritized) {
+        setPreTashkeelText(text); // Preserve exact original text for 1-click Undo
         setText(diacritized);
         setNotification('✨ تم تشكيل النص العربي بنجاح لضمان نطق سينمائي سليم!');
         setTimeout(() => setNotification(null), 4000);
@@ -158,6 +162,26 @@ const App: React.FC = () => {
       setIsQuickDiacritizing(false);
     }
   };
+
+  const handleUndoTashkeel = () => {
+    if (preTashkeelText !== null) {
+      setText(preTashkeelText);
+      setPreTashkeelText(null);
+      setNotification('↩️ تم التراجع واستعادة النص الأصلي قبل التشكيل.');
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  // A/B Voice & Performance Comparison State
+  const [previousAudio, setPreviousAudio] = useState<{
+    url: string;
+    filename: string;
+    rawBase64: string;
+    voiceName: string;
+    duration: number;
+  } | null>(null);
+  const [activeAudioSlot, setActiveAudioSlot] = useState<'A' | 'B'>('A');
+  const currentAudioVoiceRef = useRef<string>('');
 
   // Playback Progress State
   const [playbackProgress, setPlaybackProgress] = useState(0);
@@ -556,6 +580,38 @@ const App: React.FC = () => {
     setPlaybackProgress(0);
   };
 
+  const switchAudioSlot = async (slot: 'A' | 'B') => {
+    if (slot === activeAudioSlot) return;
+    handleStop();
+    setActiveAudioSlot(slot);
+
+    const target = slot === 'A' ? downloadData : previousAudio;
+    if (target?.url) {
+      try {
+        const audio = new Audio(target.url);
+        audioElemRef.current = audio;
+
+        audio.ontimeupdate = () => {
+          if (audio.duration) {
+            setPlaybackProgress((audio.currentTime / audio.duration) * 100);
+            setAudioDuration(audio.duration);
+          }
+        };
+
+        audio.onended = () => {
+          setIsPlaying(false);
+          setPlaybackProgress(0);
+          audioElemRef.current = null;
+        };
+
+        await audio.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.warn("Failed to switch audio slot playback:", err);
+      }
+    }
+  };
+
   const handleClearCacheAndRefresh = async () => {
     handleStop();
     await clearAllAudioCache();
@@ -739,6 +795,19 @@ const App: React.FC = () => {
         return;
       }
 
+      // Preserve previous audio in Slot B for instant A/B comparison
+      if (downloadData && downloadData.url && downloadData.rawBase64 !== rawBase64Audio) {
+        setPreviousAudio({
+          url: downloadData.url,
+          filename: downloadData.filename,
+          rawBase64: downloadData.rawBase64,
+          voiceName: currentAudioVoiceRef.current || selectedVoice,
+          duration: audioDuration,
+        });
+      }
+      currentAudioVoiceRef.current = voiceToUse || selectedVoice;
+      setActiveAudioSlot('A');
+
       const audioUrl = URL.createObjectURL(blob);
       setDownloadData({
         url: audioUrl,
@@ -907,9 +976,10 @@ const App: React.FC = () => {
     }
 
     // If audio was already generated for this exact current session, replay it cleanly
-    if (downloadData?.url) {
+    const activeTarget = (activeAudioSlot === 'B' && previousAudio) ? previousAudio : downloadData;
+    if (activeTarget?.url) {
       try {
-        const audio = new Audio(downloadData.url);
+        const audio = new Audio(activeTarget.url);
         audioElemRef.current = audio;
 
         audio.ontimeupdate = () => {
@@ -930,7 +1000,7 @@ const App: React.FC = () => {
         return;
       } catch (e) {
         console.warn("Replay failed, regenerating audio:", e);
-        setDownloadData(null);
+        if (activeAudioSlot === 'A') setDownloadData(null);
       }
     }
 
@@ -943,10 +1013,11 @@ const App: React.FC = () => {
   };
 
   const handleDownload = async () => {
-    if (!downloadData) return;
+    const activeTarget = (activeAudioSlot === 'B' && previousAudio) ? previousAudio : downloadData;
+    if (!activeTarget) return;
 
     try {
-      let urlToDownload = downloadData.url;
+      let urlToDownload = activeTarget.url;
       let needsRevoke = false;
 
       if (urlToDownload.startsWith('http')) {
@@ -958,7 +1029,7 @@ const App: React.FC = () => {
 
       const a = document.createElement('a');
       a.href = urlToDownload;
-      a.download = downloadData.filename;
+      a.download = activeTarget.filename;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -970,7 +1041,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Download failed, falling back to open:", err);
       const a = document.createElement('a');
-      a.href = downloadData.url;
+      a.href = activeTarget.url;
       a.target = '_blank';
       a.click();
     }
@@ -987,19 +1058,20 @@ const App: React.FC = () => {
   };
 
   const handleDownloadMp3 = async () => {
-    if (!downloadData) return;
+    const activeTarget = (activeAudioSlot === 'B' && previousAudio) ? previousAudio : downloadData;
+    if (!activeTarget) return;
     setIsConvertingMp3(true);
     try {
-      let base64 = downloadData.rawBase64;
+      let base64 = activeTarget.rawBase64;
       if (!base64) {
-        const res = await fetch(downloadData.url);
+        const res = await fetch(activeTarget.url);
         const arrayBuf = await res.arrayBuffer();
         const uint8 = new Uint8Array(arrayBuf);
         base64 = uint8ArrayToBase64(uint8);
       }
       const mp3Blob = await convertAudioToMp3(base64);
       const mp3Url = URL.createObjectURL(mp3Blob);
-      const mp3Filename = downloadData.filename.replace(/\.wav$/i, '') + '.mp3';
+      const mp3Filename = activeTarget.filename.replace(/\.wav$/i, '') + '.mp3';
 
       const a = document.createElement('a');
       a.href = mp3Url;
@@ -1018,12 +1090,13 @@ const App: React.FC = () => {
   };
 
   const handleExportSrt = async (format: 'srt' | 'json' = 'srt') => {
-    if (!downloadData) return;
+    const activeTarget = (activeAudioSlot === 'B' && previousAudio) ? previousAudio : downloadData;
+    if (!activeTarget) return;
     setIsTranscribingSrt(true);
     try {
-      let base64 = downloadData.rawBase64;
+      let base64 = activeTarget.rawBase64;
       if (!base64) {
-        const res = await fetch(downloadData.url);
+        const res = await fetch(activeTarget.url);
         const arrayBuf = await res.arrayBuffer();
         const uint8 = new Uint8Array(arrayBuf);
         base64 = uint8ArrayToBase64(uint8);
@@ -1036,7 +1109,7 @@ const App: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${downloadData.filename.replace(/\.wav$/i, '')}_subtitles.srt`;
+        a.download = `${activeTarget.filename.replace(/\.wav$/i, '')}_subtitles.srt`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
@@ -1048,7 +1121,7 @@ const App: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${downloadData.filename.replace(/\.wav$/i, '')}_word_timestamps.json`;
+        a.download = `${activeTarget.filename.replace(/\.wav$/i, '')}_word_timestamps.json`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
@@ -1381,10 +1454,10 @@ const App: React.FC = () => {
                   type="button"
                   onClick={() => setIsChangelogOpen(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1 border-2 border-bauhaus-black bg-bauhaus-black hover:bg-gray-800 text-bauhaus-yellow text-[10px] md:text-xs font-black uppercase transition-all shadow-hard-sm active:translate-y-0.5 cursor-pointer"
-                  title="سجل التحديثات والإصدارات (Changelog) - الإصدار v1.0.1-beta"
+                  title="سجل التحديثات والإصدارات (Changelog) - الإصدار v2.0.0"
                 >
                   <span>📜</span>
-                  <span>v1.0.1-beta</span>
+                  <span>v2.0.0</span>
                 </button>
               </div>
             </div>
@@ -1625,17 +1698,30 @@ const App: React.FC = () => {
                     </div>
                 </button>
               
-                {/* QUICK TASHKEEL BUTTON */}
-                <button
-                  type="button"
-                  onClick={handleQuickDiacritize}
-                  disabled={isQuickDiacritizing || isGenerating || !text.trim()}
-                  className="flex items-center gap-1.5 text-xs font-bold bg-white hover:bg-yellow-100 border-2 md:border-3 border-bauhaus-black px-2.5 py-1.5 md:py-2 transition-all text-bauhaus-black active:translate-y-0.5 shadow-sm"
-                  title="تشكيل النص العربي بالكامل لضمان نطق فصيح وسليم دون أخطاء نحوية"
-                >
-                  <span>{isQuickDiacritizing ? '⏳' : '✨'}</span>
-                  <span className="hidden sm:inline">{isQuickDiacritizing ? 'جاري التشكيل...' : 'تشكيل النص'}</span>
-                </button>
+                {/* QUICK TASHKEEL BUTTON & UNDO */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleQuickDiacritize}
+                    disabled={isQuickDiacritizing || isGenerating || !text.trim()}
+                    className="flex items-center gap-1.5 text-xs font-bold bg-white hover:bg-yellow-100 border-2 md:border-3 border-bauhaus-black px-2.5 py-1.5 md:py-2 transition-all text-bauhaus-black active:translate-y-0.5 shadow-sm cursor-pointer disabled:opacity-50"
+                    title="تشكيل النص العربي بالكامل لضمان نطق فصيح وسليم دون أخطاء نحوية"
+                  >
+                    <span>{isQuickDiacritizing ? '⏳' : '✨'}</span>
+                    <span className="hidden sm:inline">{isQuickDiacritizing ? 'جاري التشكيل...' : 'تشكيل النص'}</span>
+                  </button>
+                  {preTashkeelText !== null && (
+                    <button
+                      type="button"
+                      onClick={handleUndoTashkeel}
+                      className="flex items-center gap-1 text-[11px] font-bold bg-gray-100 hover:bg-gray-200 border-2 border-bauhaus-black px-2 py-1 md:py-1.5 transition-all text-gray-800 active:translate-y-0.5 shadow-xs cursor-pointer"
+                      title="استعادة النص الأصلي قبل التشكيل"
+                    >
+                      <span>↩️</span>
+                      <span>تراجع</span>
+                    </button>
+                  )}
+                </div>
 
                 {/* PROMINENT DRAMATIZE PERFORMANCE BUTTON */}
                 <button
@@ -2054,6 +2140,52 @@ const App: React.FC = () => {
         {/* Action Bar & Master Audio Controls */}
         <div className="flex-shrink-0 border-t-4 border-bauhaus-black bg-white p-3 md:p-6 z-20">
           
+          {/* A/B Audio Comparison Bar */}
+          {previousAudio && (
+            <div 
+              className="w-full mb-3 p-2 md:p-2.5 bg-yellow-50 border-2 border-bauhaus-black flex flex-wrap items-center justify-between gap-2 text-xs font-bold shadow-xs select-none" 
+              dir="rtl"
+            >
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-bauhaus-black text-bauhaus-yellow font-mono text-[10px] uppercase border border-black rounded-xs">
+                  🔀 مقارنة A / B
+                </span>
+                <span className="text-gray-800 text-[11px]">
+                  قارن فوراً بين التوليد الحالي والسابق بنقرة واحدة:
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchAudioSlot('A')}
+                  className={`px-3 py-1 border-2 border-bauhaus-black text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeAudioSlot === 'A'
+                      ? 'bg-bauhaus-blue text-white shadow-hard-sm -translate-y-0.5'
+                      : 'bg-white hover:bg-gray-100 text-black'
+                  }`}
+                  title="استماع وتحديد النسخة الحالية A"
+                >
+                  <span>{activeAudioSlot === 'A' ? '▶' : '○'}</span>
+                  <span>النسخة الحالية (A) • {currentAudioVoiceRef.current || selectedVoice}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => switchAudioSlot('B')}
+                  className={`px-3 py-1 border-2 border-bauhaus-black text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeAudioSlot === 'B'
+                      ? 'bg-bauhaus-red text-white shadow-hard-sm -translate-y-0.5'
+                      : 'bg-white hover:bg-gray-100 text-black'
+                  }`}
+                  title="استماع وتحديد النسخة السابقة B"
+                >
+                  <span>{activeAudioSlot === 'B' ? '▶' : '○'}</span>
+                  <span>النسخة السابقة (B) • {previousAudio.voiceName}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Real-time Playback Progress Bar */}
           {isPlaying && (
             <div className="w-full mb-3 flex items-center gap-3">
